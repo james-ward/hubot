@@ -18,11 +18,14 @@ module.exports = (robot) ->
 
   robot.respond /fireshots (.*)/i, (msg) ->
     shotstofire = msg.match[1]
-    message = "OH OH, SHOTS FIRED"
+    message = ""
+    if shotstofire > 10
+      shotstofire = 10
     for i in [0...shotstofire]
-      if token = null
-          message = stripslack(message)
-      msg.send(message)
+      message += "OH OH, SHOTS FIRED\n"
+    if token = null
+        message = stripslack(message)
+    msg.send(message)
 
   stripslack = (toStrip) ->
     toStrip = toStrip.replace(new RegExp('\\*', 'g'), '')
