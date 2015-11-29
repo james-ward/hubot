@@ -16,7 +16,7 @@ token = process.env.HUBOT_SLACK_TOKEN
 
 module.exports = (robot) ->
 
-  robot.respond /team (.*)/i, (msg) ->
+  robot.hear /[Tt]eam (\d{1,4})(?!\S)/i, (msg) ->
     teamToSearch = msg.match[1]
     robot.logger.info teamToSearch
     robot.http('http://www.thebluealliance.com/api/v2/team/frc' + teamToSearch)
