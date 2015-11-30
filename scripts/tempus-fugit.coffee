@@ -19,15 +19,21 @@ token = process.env.HUBOT_SLACK_TOKEN
 module.exports = (robot) ->
   robot.respond /clock in/i, (res) ->
     res.reply clock_in(res.message.user.name)
+    res.send human_leaderboard(leaderboard(robot.brain.get('tempus_fugit')))
 
   robot.respond /clock out/i, (res) ->
     res.reply clock_out(res.message.user.name)
 
   robot.respond /tempus fugit/i, (res) ->
-    msg = "No leaderboard implemented yet!"
+    res.send human_leaderboard(leaderboard(robot.brain.get('tempus_fugit')))
+
+  human_leaderboard = (leaderboard) ->
+    msg = ""
+    for k, v of leaderboard
+      msg += k + ": " + human_time(v) + "\n"
     if token = null
       msg = stripslack(msg)
-    res.reply msg
+    return msg
 
   clock_in = (username) ->
     clocked_in = robot.brain.get('clocked_in') or []
@@ -75,6 +81,17 @@ module.exports = (robot) ->
     toStrip = toStrip.replace(new RegExp('\\*', 'g'), '')
     toStrip = toStrip.replace(new RegExp('\\_', 'g'), '')
     return toStrip
+
+  leaderboard = (time_cards) ->
+    totals = {}
+    for user, user_time_cards of time_cards
+      totals[user] = total_time(user_time_cards)
+    res = {}
+    totals = do (totals) ->
+      keys = Object.keys(totals).sort (a, b) -> totals[b] - totals[a]
+      for k in keys
+        res[k] = totals[k]
+    return res
 
   total_time = (time_cards) ->
     t = 0
