@@ -46,6 +46,8 @@ module.exports = (robot) ->
     return msg
 
   robot.on 'clock_in', (username, room) ->
+    if not robot.brain.userForName(username)
+      return
     clocked_in = robot.brain.get('clocked_in') or []
     if username in clocked_in
       msg = "@#{username} Already clocked in!"
@@ -65,6 +67,8 @@ module.exports = (robot) ->
     robot.messageRoom room, msg
 
   robot.on 'clock_out', (username, room) ->
+    if not robot.brain.userForName(username)
+      return
     clocked_in = robot.brain.get('clocked_in') or []
     if username not in clocked_in
       msg = "@#{username} Already clocked out!"
