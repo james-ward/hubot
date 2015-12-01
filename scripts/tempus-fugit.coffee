@@ -27,14 +27,26 @@ module.exports = (robot) ->
   robot.respond /tempus fugit/i, (res) ->
     res.send human_leaderboard(leaderboard(robot.brain.get('tempus_fugit')))
 
-  robot.router.get '/dropbot/qr/:username', (req, res) ->
+  robot.router.get '/dropbot/tempus-fugit/qr/:username', (req, res) ->
     username = req.params.username
     clocked_in = robot.brain.get('clocked_in') or []
     if username in clocked_in
       robot.emit 'clock_out', username, "tempus-fugit"
     else
       robot.emit 'clock_in', username, "tempus-fugit"
-    res.end 'OK'
+    json_leaderboard(res)
+
+  robot.router.get '/dropbot/tempus-fugit/leaderboard', (req, res) ->
+    json_leaderboard(res)
+
+  json_leaderboard = (res) ->
+    res.writeHead 200, {'Content-Type': 'application/json'}
+    real_names = {}
+    lb = leaderboard(robot.brain.get('tempus_fugit'))
+    for k, v of lb
+      real_names[k] = robot.brain.userForName(k).real_name or k
+    data = {'clocked_in': robot.brain.get('clocked_in'), 'leaderboard': lb, 'real_names': real_names}
+    res.end JSON.stringify(data)
 
   human_leaderboard = (leaderboard) ->
     msg = ""
