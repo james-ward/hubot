@@ -18,27 +18,37 @@ token = process.env.HUBOT_SLACK_TOKEN
 
 module.exports = (robot) ->
   robot.respond /clock in/i, (res) ->
-    res.reply clock_in(res.message.user.name)
+    robot.emit 'clock_in', res.message.user.name, res.message.room
     res.send human_leaderboard(leaderboard(robot.brain.get('tempus_fugit')))
 
   robot.respond /clock out/i, (res) ->
-    res.reply clock_out(res.message.user.name)
+    robot.emit 'clock_out', res.message.user.name, res.message.room
 
   robot.respond /tempus fugit/i, (res) ->
     res.send human_leaderboard(leaderboard(robot.brain.get('tempus_fugit')))
 
+  robot.router.get '/dropbot/qr/:username', (req, res) ->
+    username = req.params.username
+    clocked_in = robot.brain.get('clocked_in') or []
+    if username in clocked_in
+      robot.emit 'clock_out', username, "tempus-fugit"
+    else
+      robot.emit 'clock_in', username, "tempus-fugit"
+    res.end 'OK'
+
   human_leaderboard = (leaderboard) ->
     msg = ""
     for k, v of leaderboard
-      msg += k + ": " + human_time(v) + "\n"
+      realname = robot.brain.userForName(k).real_name or k
+      msg += realname + ": " + human_time(v) + "\n"
     if token = null
       msg = stripslack(msg)
     return msg
 
-  clock_in = (username) ->
+  robot.on 'clock_in', (username, room) ->
     clocked_in = robot.brain.get('clocked_in') or []
     if username in clocked_in
-      msg = "Already clocked in!"
+      msg = "@#{username} Already clocked in!"
     else
       clocked_in.push username
       today = new Date()
@@ -48,16 +58,16 @@ module.exports = (robot) ->
       user_time_cards.push today
       time_cards[username] = user_time_cards
       robot.brain.set("tempus_fugit", time_cards)
-      msg = "Clocked in at " + today.getHours() + ":" + forceTwoDigits(today.getMinutes())
-      msg += "\nYou have clocked up " + human_time(total_time(user_time_cards))
+      msg = "@#{username} clocked in at " + today.getHours() + ":" + forceTwoDigits(today.getMinutes()) + "\n"
+      msg += "@#{username} You have clocked up " + human_time(total_time(user_time_cards))
     if token = null
       msg = stripslack(msg)
-    return msg
+    robot.messageRoom room, msg
 
-  clock_out = (username) ->
+  robot.on 'clock_out', (username, room) ->
     clocked_in = robot.brain.get('clocked_in') or []
     if username not in clocked_in
-      msg = "Already clocked out!"
+      msg = "@#{username} Already clocked out!"
     else
       clocked_in = clocked_in.filter (name) -> name isnt username
       today = new Date()
@@ -66,11 +76,11 @@ module.exports = (robot) ->
       user_time_cards = time_cards[username] or []
       user_time_cards.push today
       robot.brain.set("tempus_fugit", time_cards)
-      msg = "Clocked out at " + today.getHours() + ":" + forceTwoDigits(today.getMinutes())
-      msg += "\nYou have clocked up " + human_time(total_time(user_time_cards))
+      msg = "@#{username} clocked out at " + today.getHours() + ":" + forceTwoDigits(today.getMinutes()) + "\n"
+      msg += "@#{username} You have clocked up " + human_time(total_time(user_time_cards))
     if token = null
       msg = stripslack(msg)
-    return msg
+    robot.messageRoom room, msg
 
   forceTwoDigits = (val) ->
     if val < 10
