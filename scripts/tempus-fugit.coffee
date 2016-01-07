@@ -115,6 +115,12 @@ module.exports = (robot) ->
       robot.brain.set('tempus_fugit_available', true)
       robot.messageRoom "tempus-fugit", "*Tempus fugit* ready for clock-ins!"
 
+  robot.respond /reset tempus fugit/i, (res) ->
+    if res.message.room == "management" and res.message.user.name is "james"
+      robot.brain.set('tempus_fugit', {})
+      robot.brain.set('clocked_in', [])
+      res.send "*Tempus fugit* reset."
+
   forceTwoDigits = (val) ->
     if val < 10
       return "0#{val}"
