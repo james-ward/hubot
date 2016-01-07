@@ -11,6 +11,8 @@
 #   hubot clock in - Clock in to track your robot working hours
 #   hubot clock out - Finish working for the day
 #   hubot tempus fugit - Display a leaderboard of working hours
+#   hubot open for business - Turn on time tracking. Must be in #management
+#   hubot finished for the day - Clock everyone out and turn off time tracking. Must be in #management
 #
 # Author:
 #   JRW
@@ -60,6 +62,9 @@ module.exports = (robot) ->
   robot.on 'clock_in', (username, room) ->
     if not robot.brain.userForName(username)
       return
+    if not robot.brain.get('tempus_fugit_available')
+      robot.messageRoom room, "*Tempus fugit* not switched on. Talk to your section leader!"
+      return
     clocked_in = robot.brain.get('clocked_in') or []
     if username in clocked_in
       msg = "@#{username} Already clocked in!"
@@ -97,6 +102,18 @@ module.exports = (robot) ->
     if token = null
       msg = stripslack(msg)
     robot.messageRoom room, msg
+
+  robot.respond /finished for the day/i, (res) ->
+    if res.message.room is "management"
+      clocked_in = robot.brain.get('clocked_in') or []
+      for username in clocked_in
+        robot.emit 'clock_out', username, "tempus-fugit"
+      robot.brain.set('tempus_fugit_available', false)
+
+  robot.respond /open for business/i, (res) ->
+    if res.message.room is "management"
+      robot.brain.set('tempus_fugit_available', true)
+      robot.messageRoom "tempus-fugit", "*Tempus fugit* ready for clock-ins!"
 
   forceTwoDigits = (val) ->
     if val < 10
